@@ -1,0 +1,8 @@
+# terraform.tfvars.example
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is in .gitignore and should not be committed
+
+project_name = "stat-tracker"
+aws_region   = "us-east-1"
+environment  = "dev"
+
