@@ -99,6 +99,18 @@ resource "aws_api_gateway_rest_api" "main" {
   tags = local.common_tags
 }
 
+# Cognito Authorizer for API Gateway
+# This validates JWT tokens from Cognito before allowing requests to reach Lambda
+# When a request comes in with an Authorization header containing a Cognito JWT token,
+# API Gateway validates it and extracts user information (like userId/sub) from the token
+resource "aws_api_gateway_authorizer" "cognito" {
+  name                   = "${var.project_name}-cognito-authorizer"
+  rest_api_id            = aws_api_gateway_rest_api.main.id
+  type                   = "COGNITO_USER_POOLS"
+  provider_arns          = [aws_cognito_user_pool.main.arn]
+  authorizer_credentials = null  # Not needed for Cognito User Pools authorizer
+}
+
 # API Gateway resource for /user-data endpoint
 resource "aws_api_gateway_resource" "user_data" {
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -107,11 +119,23 @@ resource "aws_api_gateway_resource" "user_data" {
 }
 
 # API Gateway method (GET) for /user-data
+# Now secured with Cognito authorization - users must be authenticated
 resource "aws_api_gateway_method" "get_user_data" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id     = aws_api_gateway_resource.user_data.id
+  http_method     = "GET"
+  authorization   = "COGNITO_USER_POOLS"  # Require Cognito authentication
+  authorizer_id   = aws_api_gateway_authorizer.cognito.id
+}
+
+# OPTIONS method for CORS preflight requests
+# Browsers send an OPTIONS request before the actual GET request to check CORS permissions
+# This is called a "preflight" request - API Gateway must handle it and return CORS headers
+resource "aws_api_gateway_method" "options_user_data" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
   resource_id   = aws_api_gateway_resource.user_data.id
-  http_method   = "GET"
-  authorization = "NONE"  # We'll add Cognito auth later
+  http_method   = "OPTIONS"
+  authorization = "NONE"  # Preflight requests don't need authentication
 }
 
 # Integration between API Gateway and Lambda
@@ -126,6 +150,57 @@ resource "aws_api_gateway_integration" "get_user_data" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.get_user_data.invoke_arn
+}
+
+# Mock integration for OPTIONS (CORS preflight)
+# This doesn't call Lambda - it just returns CORS headers directly from API Gateway
+# Mock integrations are perfect for preflight requests since we just need to return headers
+resource "aws_api_gateway_integration" "options_user_data" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.user_data.id
+  http_method = aws_api_gateway_method.options_user_data.http_method
+  
+  # MOCK integration means API Gateway handles it internally without calling backend
+  type = "MOCK"
+  
+  # Request template - we don't need to transform anything for OPTIONS
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+# Method response for OPTIONS - defines what headers the response will include
+# This is where we declare the CORS headers that will be sent back to the browser
+resource "aws_api_gateway_method_response" "options_user_data" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.user_data.id
+  http_method = aws_api_gateway_method.options_user_data.http_method
+  status_code = "200"
+  
+  # These are the CORS headers that will be returned
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# Integration response for OPTIONS - maps the actual header values
+# This connects the method response (declaration) to actual values
+resource "aws_api_gateway_integration_response" "options_user_data" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.user_data.id
+  http_method = aws_api_gateway_method.options_user_data.http_method
+  status_code = aws_api_gateway_method_response.options_user_data.status_code
+  
+  # Map the response headers to actual CORS values
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"  # In production, restrict to your domain
+  }
+  
+  depends_on = [aws_api_gateway_integration.options_user_data]
 }
 
 # Permission for API Gateway to invoke Lambda
@@ -150,11 +225,15 @@ resource "aws_api_gateway_deployment" "main" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   
   # Triggers a new deployment when any resource changes
+  # Include all resources so deployment happens when anything changes
   triggers = {
     redeployment = sha1(jsonencode([
       aws_api_gateway_resource.user_data.id,
       aws_api_gateway_method.get_user_data.id,
-      aws_api_gateway_integration.get_user_data.id
+      aws_api_gateway_method.options_user_data.id,
+      aws_api_gateway_integration.get_user_data.id,
+      aws_api_gateway_integration.options_user_data.id,
+      aws_api_gateway_authorizer.cognito.id
     ]))
   }
   
