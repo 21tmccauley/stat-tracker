@@ -1,0 +1,10 @@
+{
+  "name": "test-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Helper scripts for testing API endpoints",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.700.0"
+  }
+}
+
