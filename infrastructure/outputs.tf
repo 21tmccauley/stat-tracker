@@ -45,3 +45,13 @@ output "get_user_data_endpoint" {
   description = "Full URL for getUserData Lambda endpoint"
   value       = "${aws_api_gateway_stage.main.invoke_url}/user-data"
 }
+
+output "create_habit_endpoint" {
+  description = "Full URL for createHabit Lambda endpoint"
+  value       = "${aws_api_gateway_stage.main.invoke_url}/habits"
+}
+
+output "complete_habit_endpoint" {
+  description = "Full URL for completeHabit Lambda endpoint"
+  value       = "${aws_api_gateway_stage.main.invoke_url}/habits/complete"
+}

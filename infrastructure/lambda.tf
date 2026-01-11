@@ -333,12 +333,139 @@ resource "aws_lambda_permission" "api_gateway_invoke_create_habit" {
   source_arn = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
 }
 
+# ============================================
+# completeHabit Lambda Function
+# ============================================
+
+# Package the completeHabit Lambda function code into a zip file
+data "archive_file" "complete_habit_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../backend/completeHabit"
+  output_path = "${path.module}/../backend/completeHabit.zip"
+  
+  excludes = ["*.zip", ".git"]
+}
+
+# Lambda function for completeHabit
+resource "aws_lambda_function" "complete_habit" {
+  filename         = data.archive_file.complete_habit_zip.output_path
+  function_name    = "${var.project_name}-complete-habit"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "index.handler"
+  source_code_hash = data.archive_file.complete_habit_zip.output_base64sha256
+  
+  runtime = "nodejs20.x"
+  
+  environment {
+    variables = {
+      USERS_TABLE_NAME       = aws_dynamodb_table.users.name
+      HABITS_TABLE_NAME      = aws_dynamodb_table.habits.name
+      COMPLETIONS_TABLE_NAME = aws_dynamodb_table.completions.name
+    }
+  }
+  
+  tags = local.common_tags
+}
+
+# API Gateway resource for /habits/complete endpoint
+resource "aws_api_gateway_resource" "habits_complete" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.habits.id
+  path_part   = "complete"
+}
+
+# API Gateway method (POST) for /habits/complete
+resource "aws_api_gateway_method" "complete_habit" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.habits_complete.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+# OPTIONS method for CORS preflight requests for /habits/complete
+resource "aws_api_gateway_method" "options_habits_complete" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.habits_complete.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# Integration between API Gateway and completeHabit Lambda
+resource "aws_api_gateway_integration" "complete_habit" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_complete.id
+  http_method = aws_api_gateway_method.complete_habit.http_method
+  
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.complete_habit.invoke_arn
+}
+
+# Mock integration for OPTIONS (CORS preflight) for /habits/complete
+resource "aws_api_gateway_integration" "options_habits_complete" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_complete.id
+  http_method = aws_api_gateway_method.options_habits_complete.http_method
+  
+  type = "MOCK"
+  
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+# Method response for OPTIONS - /habits/complete
+resource "aws_api_gateway_method_response" "options_habits_complete" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_complete.id
+  http_method = aws_api_gateway_method.options_habits_complete.http_method
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# Integration response for OPTIONS - /habits/complete
+resource "aws_api_gateway_integration_response" "options_habits_complete" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_complete.id
+  http_method = aws_api_gateway_method.options_habits_complete.http_method
+  status_code = aws_api_gateway_method_response.options_habits_complete.status_code
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  
+  depends_on = [aws_api_gateway_integration.options_habits_complete]
+}
+
+# Permission for API Gateway to invoke completeHabit Lambda
+resource "aws_lambda_permission" "api_gateway_invoke_complete_habit" {
+  statement_id  = "AllowAPIGatewayInvokeCompleteHabit"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.complete_habit.function_name
+  principal     = "apigateway.amazonaws.com"
+  
+  source_arn = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+# ============================================
+# API Gateway Deployment & Stage
+# ============================================
+
 # API Gateway deployment
 # This actually publishes the API so it's accessible
 resource "aws_api_gateway_deployment" "main" {
   depends_on = [
     aws_api_gateway_integration.get_user_data,
-    aws_api_gateway_integration.create_habit
+    aws_api_gateway_integration.create_habit,
+    aws_api_gateway_integration.complete_habit
   ]
   
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -357,6 +484,11 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_method.options_habits.id,
       aws_api_gateway_integration.create_habit.id,
       aws_api_gateway_integration.options_habits.id,
+      aws_api_gateway_resource.habits_complete.id,
+      aws_api_gateway_method.complete_habit.id,
+      aws_api_gateway_method.options_habits_complete.id,
+      aws_api_gateway_integration.complete_habit.id,
+      aws_api_gateway_integration.options_habits_complete.id,
       aws_api_gateway_authorizer.cognito.id
     ]))
   }

@@ -204,13 +204,45 @@ async function main() {
     console.log(`Status: ${result.status} ${result.statusText}`);
     console.log(`Body: ${JSON.stringify(result.body, null, 2)}`);
     
+  } else if (command === 'complete-habit') {
+    // Get habitId from args
+    const habitId = args[1];
+    
+    if (!habitId) {
+      console.log(`${colors.red}Error: habitId is required${colors.reset}`);
+      console.log(`Usage: node scripts/test-api.js complete-habit <habitId>`);
+      console.log(`\nTip: Run 'node scripts/test-api.js create-habit' first to get a habitId`);
+      return;
+    }
+    
+    const completeData = { habitId };
+    
+    console.log(`${colors.cyan}Completing habit: ${habitId}${colors.reset}`);
+    
+    const result = await makeApiRequest('POST', '/habits/complete', token, completeData);
+    
+    console.log(`\n${colors.blue}Response:${colors.reset}`);
+    console.log(`Status: ${result.status} ${result.statusText}`);
+    console.log(`Body: ${JSON.stringify(result.body, null, 2)}`);
+    
+    if (result.status === 200) {
+      console.log(`\n${colors.green}✓ Habit completed successfully!${colors.reset}`);
+      if (result.body.user?.leveledUp) {
+        console.log(`${colors.yellow}🎉 LEVEL UP! You are now level ${result.body.user.level}!${colors.reset}`);
+      }
+    } else {
+      console.log(`\n${colors.red}✗ Request failed${colors.reset}`);
+    }
+    
   } else {
     console.log(`${colors.yellow}Usage:${colors.reset}`);
     console.log(`  node scripts/test-api.js create-habit [name] [xpReward] [description]`);
+    console.log(`  node scripts/test-api.js complete-habit <habitId>`);
     console.log(`  node scripts/test-api.js get-user-data`);
     console.log(`\n${colors.cyan}Examples:${colors.reset}`);
     console.log(`  node scripts/test-api.js create-habit`);
     console.log(`  node scripts/test-api.js create-habit "Read 30 minutes" 20 "Read for 30 minutes daily"`);
+    console.log(`  node scripts/test-api.js complete-habit abc123-def456-...`);
     console.log(`  node scripts/test-api.js get-user-data`);
   }
 }
