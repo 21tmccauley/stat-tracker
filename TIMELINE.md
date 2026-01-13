@@ -11,12 +11,12 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 | Phase 1: Foundation | ✅ Complete | All infrastructure deployed |
 | Phase 2: Authentication | ✅ Complete | Full auth flow working |
 | Phase 3: First Lambda | ✅ Complete | getUserData endpoint live |
-| Phase 4: CRUD Operations | ✅ Complete | All backend endpoints implemented |
-| Phase 5: Frontend Features | 🔄 Partial | Auth only, no dashboard/habits UI |
+| Phase 4: CRUD Operations | ✅ Complete | All backend endpoints implemented (getUserData, createHabit, completeHabit) |
+| Phase 5: Frontend Features | 🔄 In Progress | Dashboard fully functional with real API, needs getHabits endpoint & routing |
 | Phase 6: PWA & Deployment | ❌ Not Started | |
 | Phase 7: Testing | ❌ Not Started | |
 
-**Last Updated**: January 9, 2026
+**Last Updated**: January 11, 2026
 
 ---
 
@@ -144,37 +144,94 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 
 ---
 
-## Phase 5: Frontend - Core Features 🔄 PARTIAL
+## Phase 5: Frontend - Core Features 🔄 IN PROGRESS
 **Goal**: Build the main user interface
 
-### 5.1 Frontend Structure 🔄 PARTIAL
-- [x] Set up component structure (components/, pages/, contexts/)
+### 5.1 Frontend Structure ✅ COMPLETE
+- [x] Set up component structure (components/, pages/, contexts/, theme/)
 - [x] Create AuthContext for managing auth state
-- [ ] Set up API client service (`services/api.js`)
-- [ ] Create basic routing (if using React Router)
+- [x] Set up API client service (`services/api.js`)
+- [x] Install MUI (Material-UI) component library
+- [x] Create Vision UI-inspired dark theme
+- [x] Install recharts for data visualization
+- [ ] Add React Router for navigation
 
-**Learning Focus**: React architecture, Context API, API integration patterns
+**What was built**:
+- `frontend/src/services/api.js` - API client with auth token handling (getUserData, createHabit, completeHabit)
+- `frontend/src/theme/index.js` - MUI dark theme configuration
+- `frontend/src/theme/colors.js` - Color palette (navy, blue, purple accents)
+- `frontend/src/components/LoginHero.jsx` - Hero image component for login page
+- `frontend/src/components/AuthButton.jsx` - Reusable styled auth button component
 
-### 5.2 Dashboard Page ❌ NOT STARTED
-- [ ] Create Dashboard component
-- [ ] Fetch and display user stats (level, XP, stats)
-- [ ] Create StatsDisplay component
-- [ ] Create LevelProgress component
-- [ ] Style with CSS
+**Learning Focus**: React architecture, Context API, API integration patterns, MUI theming
 
-**Learning Focus**: React components, data fetching, state management
+### 5.2 Dashboard Page ✅ COMPLETE
+- [x] Create Dashboard component
+- [x] Fetch and display user stats (level, XP) - **Real API integration**
+- [x] Create CharacterCard component (level, XP progress bar, title)
+- [x] Create StatCard component (mini stats with icons)
+- [x] Create GlassCard component (glassmorphism wrapper)
+- [x] Create HabitCard component (habit display with complete button)
+- [x] Create ProgressChart component (7-day XP progress visualization with recharts)
+- [x] Create Sidenav component (fixed sidebar navigation)
+- [x] Create Header component (user info, logout button)
+- [x] Wire up "Complete Habit" button to real API - **Fully functional**
+- [x] Handle level-up notifications (alert-based, needs improvement)
+- [x] Style with MUI + custom theme
+- [x] Add loading states (CircularProgress)
+- [x] Add error handling with retry functionality
 
-### 5.3 Habits Management ❌ NOT STARTED
-- [ ] Create Habits page/component
+**What was built**:
+- `frontend/src/pages/Dashboard.jsx` - Complete dashboard with:
+  - Real API calls to `getUserData()` and `completeHabit()`
+  - State management for habits, completed habits, loading, errors
+  - Level-up detection and alerts
+  - Activity log sidebar
+  - Stats grid (Active Habits, Total XP, Completed Today, Day Streak)
+- `frontend/src/components/CharacterCard.jsx` - Hero card with level/XP progress
+- `frontend/src/components/StatCard.jsx` - Mini statistics cards
+- `frontend/src/components/GlassCard.jsx` - Glass-style card wrapper
+- `frontend/src/components/HabitCard.jsx` - Individual habit with complete button
+- `frontend/src/components/ProgressChart.jsx` - Area chart showing XP progress over 7 days
+- `frontend/src/App.jsx` - Full app layout with sidenav, header, theme provider, auth routing
+
+**Current State**: 
+- ✅ Dashboard fully functional with real API integration
+- ✅ Complete habit functionality working (updates XP, detects level-ups)
+- ⚠️ Habits are still using mock data (need `getHabits` endpoint)
+- ⚠️ "New Habit" button exists but not functional (needs form/modal)
+
+**Learning Focus**: React components, MUI, data fetching, state management, API integration, recharts
+
+### 5.3 Habits Management 🔄 PARTIAL
+- [x] Create HabitCard component (display habits) ✅
+- [x] Wire up complete habit to real API ✅
+- [ ] Create Habits page/component (file exists but empty)
 - [ ] Create HabitForm component (create new habits)
-- [ ] Create HabitCard component (display habits)
-- [ ] Implement create habit functionality
-- [ ] Implement complete habit functionality
-- [ ] Update dashboard after completion
+- [ ] Wire up create habit to real API (API exists, needs UI)
+- [ ] Fetch real habits from API (need `getHabits` Lambda endpoint)
+- [ ] Add "New Habit" modal/form to Dashboard
+
+**Current State**: 
+- Dashboard displays mock habits (4 hardcoded habits)
+- Complete button works and calls real API
+- Need `getHabits` endpoint to fetch user's actual habits
+- Need form/modal for creating new habits
 
 **Learning Focus**: Forms, user interactions, state updates, API calls
 
-**Estimated Time**: 8-12 hours
+### 5.4 Remaining Frontend Tasks 📋
+- [ ] Add React Router for page navigation (Dashboard, Habits, Settings routes)
+- [ ] Create `getHabits` Lambda endpoint (backend)
+- [ ] Wire up Dashboard to fetch real habits from API
+- [ ] Create Habits page (full habits management UI)
+- [ ] Add "New Habit" modal/form (with createHabit API integration)
+- [ ] Replace alert() with toast notifications (better UX)
+- [ ] Add loading skeletons (better loading UX)
+- [ ] Add level-up celebration animation/modal (replace alert)
+- [ ] Wire up sidenav navigation (currently static)
+
+**Estimated Time Remaining**: 4-6 hours
 
 ---
 
@@ -202,10 +259,11 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 
 ### 6.3 Error Handling & UX
 - [ ] Add error boundaries in React
-- [ ] Add loading states
-- [ ] Add error messages
+- [ ] Add loading states/skeletons
+- [ ] Add toast notifications
 - [ ] Improve form validation
 - [ ] Add success/feedback messages
+- [ ] Add animations/transitions
 
 **Learning Focus**: Error handling patterns, UX best practices
 
@@ -233,14 +291,44 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 ---
 
 ## Total Estimated Time: 30-48 hours
+## Time Spent So Far: ~20-25 hours
+## Remaining: ~10-15 hours
 
-## 🎯 Next Steps
+---
 
-**Immediate priority**: Build the frontend Dashboard and Habits pages (Phase 5)
-- Create `services/api.js` for API calls
-- Build Dashboard component with user stats
-- Build Habits page with create/complete functionality
-- The backend is now complete - the core game loop is ready!
+## 🎯 Next Steps (Priority Order)
+
+### Immediate (To Complete Core Functionality)
+
+1. **Add `getHabits` Lambda** - Fetch user's habits from DynamoDB
+   - Create `backend/getHabits/index.js`
+   - Add to `lambda.tf` (GET /habits endpoint)
+   - Add `getHabits()` function to `api.js`
+   - Update Dashboard to fetch real habits instead of mock data
+
+2. **Add "New Habit" Form** - Create habit functionality
+   - Create HabitForm component or modal
+   - Wire up to existing `createHabit` API
+   - Add form validation
+   - Update Dashboard habits list after creation
+
+3. **Add React Router** - Enable navigation between pages
+   - Install react-router-dom
+   - Set up routes (Dashboard, Habits, Settings)
+   - Update sidenav to navigate between pages
+   - Add protected route wrapper
+
+4. **Create Habits Page** - Full habits management
+   - List all habits with real data
+   - Create new habit form
+   - Edit/delete habits (future: need update/delete endpoints)
+
+### Nice to Have (Polish)
+
+5. **Add toast notifications** - Success/error feedback
+6. **Add loading skeletons** - Better loading UX
+7. **Add level-up celebration** - Animation when leveling up
+8. **Responsive design** - Mobile-friendly layout
 
 ---
 
@@ -254,18 +342,59 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - `outputs.tf` - Output values
 
 ### Backend (`backend/`)
-- `getUserData/index.js` - ✅ Complete
-- `createHabit/index.js` - ✅ Complete
-- `completeHabit/index.js` - ✅ Complete
+- `getUserData/index.js` - ✅ Complete (GET /user-data)
+- `createHabit/index.js` - ✅ Complete (POST /habits)
+- `completeHabit/index.js` - ✅ Complete (POST /habits/complete)
+- `getHabits/index.js` - ❌ Not created yet (needed to fetch user's habits)
 
 ### Frontend (`frontend/src/`)
-- `services/auth.js` - ✅ Complete Cognito integration
-- `contexts/AuthContext.jsx` - ✅ Complete auth state management
-- `pages/Login.jsx` - ✅ Complete multi-mode auth UI
-- `App.jsx` - ✅ Basic app shell with auth
+
+#### Services
+- `services/auth.js` - ✅ Cognito authentication
+- `services/api.js` - ✅ API client with auth
+
+#### Theme
+- `theme/index.js` - ✅ MUI dark theme
+- `theme/colors.js` - ✅ Color palette
+
+#### Components
+- `components/GlassCard.jsx` - ✅ Glass-style card wrapper
+- `components/StatCard.jsx` - ✅ Mini statistics card
+- `components/CharacterCard.jsx` - ✅ Level/XP display
+- `components/HabitCard.jsx` - ✅ Habit with complete button
+- `components/ProgressChart.jsx` - ✅ 7-day XP progress chart (recharts)
+- `components/LoginHero.jsx` - ✅ Hero image component for login
+- `components/AuthButton.jsx` - ✅ Reusable styled auth button
+
+#### Pages
+- `pages/Login.jsx` - ✅ Full auth UI (5 modes: signIn, signUp, confirmEmail, forgotPassword, resetPassword)
+- `pages/Dashboard.jsx` - ✅ Main dashboard with real API integration (getUserData, completeHabit working)
+- `pages/Habits.jsx` - ⚠️ File exists but empty (needs implementation)
+
+#### Core
+- `App.jsx` - ✅ App shell with sidenav, header, theme
+- `contexts/AuthContext.jsx` - ✅ Auth state management
 
 ### Scripts (`scripts/`)
 - `test-api.js` - ✅ API testing helper with Cognito auth
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 19 + Vite |
+| UI Library | Material-UI (MUI) v7 |
+| Styling | Emotion + Custom Theme |
+| Charts | Recharts |
+| Icons | React Icons |
+| Auth | AWS Cognito + amazon-cognito-identity-js |
+| Backend | AWS Lambda (Node.js 20) |
+| Database | DynamoDB |
+| API | API Gateway REST |
+| Infrastructure | Terraform |
+| Hosting | S3 + CloudFront (planned) |
 
 ---
 
@@ -274,9 +403,11 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 1. **Infrastructure** → ✅ Learned Terraform and AWS basics
 2. **Authentication** → ✅ Learned Cognito and React auth patterns
 3. **Backend** → ✅ Learned Lambda, API Gateway, DynamoDB
-4. **Frontend** → 🔄 Next up: React patterns and API integration
+4. **Frontend** → 🔄 Learning React patterns, MUI, API integration
 5. **PWA** → Coming: Modern web app features
 6. **Deployment** → Coming: Production deployment
+
+---
 
 ## Tips for Learning
 
