@@ -1,7 +1,7 @@
 // components/HabitForm.jsx
 // Modal form for creating a new habit
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -21,7 +21,17 @@ function HabitForm({ open, onClose, onSubmit, isLoading = false }) {
   const [xpReward, setXpReward] = useState(10);
   const [errors, setErrors] = useState({});
 
-  // Reset form when dialog opens/closes
+  // Reset form when dialog closes (handles both user-initiated and programmatic closes)
+  useEffect(() => {
+    if (!open && !isLoading) {
+      setName('');
+      setDescription('');
+      setXpReward(10);
+      setErrors({});
+    }
+  }, [open, isLoading]);
+
+  // Reset form when dialog opens/closes (user-initiated close)
   const handleClose = () => {
     if (!isLoading) {
       setName('');

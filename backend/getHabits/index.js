@@ -33,9 +33,9 @@ export const handler = async (event) => {
 
     // Validate userId exists
     if (!userId) {
-      return createResponse(400, { 
-        error: 'Missing userId', 
-        message: 'userId is required as query parameter, path parameter, or from authentication' 
+      return createResponse(401, { 
+        error: 'Unauthorized', 
+        message: 'User ID is required' 
       });
     }
 
