@@ -32,6 +32,7 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
         "dynamodb:GetItem",
         "dynamodb:PutItem",
         "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
         "dynamodb:Query"
       ]
       Resource = [
@@ -308,6 +309,7 @@ resource "aws_api_gateway_method_response" "options_habits" {
 }
 
 # Integration response for OPTIONS - /habits
+# Updated to include GET method for getHabits endpoint
 resource "aws_api_gateway_integration_response" "options_habits" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   resource_id = aws_api_gateway_resource.habits.id
@@ -316,7 +318,7 @@ resource "aws_api_gateway_integration_response" "options_habits" {
   
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
   
@@ -328,6 +330,71 @@ resource "aws_lambda_permission" "api_gateway_invoke_create_habit" {
   statement_id  = "AllowAPIGatewayInvokeCreateHabit"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.create_habit.function_name
+  principal     = "apigateway.amazonaws.com"
+  
+  source_arn = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+# ============================================
+# getHabits Lambda Function
+# ============================================
+
+# Package the getHabits Lambda function code into a zip file
+data "archive_file" "get_habits_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../backend/getHabits"
+  output_path = "${path.module}/../backend/getHabits.zip"
+  
+  excludes = ["*.zip", ".git"]
+}
+
+# Lambda function for getHabits
+resource "aws_lambda_function" "get_habits" {
+  filename         = data.archive_file.get_habits_zip.output_path
+  function_name    = "${var.project_name}-get-habits"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "index.handler"
+  source_code_hash = data.archive_file.get_habits_zip.output_base64sha256
+  
+  runtime = "nodejs20.x"
+  
+  environment {
+    variables = {
+      USERS_TABLE_NAME       = aws_dynamodb_table.users.name
+      HABITS_TABLE_NAME      = aws_dynamodb_table.habits.name
+      COMPLETIONS_TABLE_NAME = aws_dynamodb_table.completions.name
+    }
+  }
+  
+  tags = local.common_tags
+}
+
+# API Gateway method (GET) for /habits
+# This uses the same /habits resource but with GET method instead of POST
+resource "aws_api_gateway_method" "get_habits" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.habits.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+# Integration between API Gateway and getHabits Lambda
+resource "aws_api_gateway_integration" "get_habits" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits.id
+  http_method = aws_api_gateway_method.get_habits.http_method
+  
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.get_habits.invoke_arn
+}
+
+# Permission for API Gateway to invoke getHabits Lambda
+resource "aws_lambda_permission" "api_gateway_invoke_get_habits" {
+  statement_id  = "AllowAPIGatewayInvokeGetHabits"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_habits.function_name
   principal     = "apigateway.amazonaws.com"
   
   source_arn = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
@@ -456,6 +523,129 @@ resource "aws_lambda_permission" "api_gateway_invoke_complete_habit" {
 }
 
 # ============================================
+# deleteHabit Lambda Function
+# ============================================
+
+# Package the deleteHabit Lambda function code into a zip file
+data "archive_file" "delete_habit_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/../backend/deleteHabit"
+  output_path = "${path.module}/../backend/deleteHabit.zip"
+  
+  excludes = ["*.zip", ".git"]
+}
+
+# Lambda function for deleteHabit
+resource "aws_lambda_function" "delete_habit" {
+  filename         = data.archive_file.delete_habit_zip.output_path
+  function_name    = "${var.project_name}-delete-habit"
+  role            = aws_iam_role.lambda_execution.arn
+  handler         = "index.handler"
+  source_code_hash = data.archive_file.delete_habit_zip.output_base64sha256
+  
+  runtime = "nodejs20.x"
+  
+  environment {
+    variables = {
+      USERS_TABLE_NAME       = aws_dynamodb_table.users.name
+      HABITS_TABLE_NAME      = aws_dynamodb_table.habits.name
+      COMPLETIONS_TABLE_NAME = aws_dynamodb_table.completions.name
+    }
+  }
+  
+  tags = local.common_tags
+}
+
+# API Gateway resource for /habits/{habitId} endpoint
+# This creates a path parameter for the habitId
+resource "aws_api_gateway_resource" "habits_habit_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.habits.id
+  path_part   = "{habitId}"
+}
+
+# API Gateway method (DELETE) for /habits/{habitId}
+resource "aws_api_gateway_method" "delete_habit" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.habits_habit_id.id
+  http_method   = "DELETE"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+# OPTIONS method for CORS preflight requests for /habits/{habitId}
+resource "aws_api_gateway_method" "options_habits_habit_id" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.habits_habit_id.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# Integration between API Gateway and deleteHabit Lambda
+resource "aws_api_gateway_integration" "delete_habit" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_habit_id.id
+  http_method = aws_api_gateway_method.delete_habit.http_method
+  
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.delete_habit.invoke_arn
+}
+
+# Mock integration for OPTIONS (CORS preflight) for /habits/{habitId}
+resource "aws_api_gateway_integration" "options_habits_habit_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_habit_id.id
+  http_method = aws_api_gateway_method.options_habits_habit_id.http_method
+  
+  type = "MOCK"
+  
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+# Method response for OPTIONS - /habits/{habitId}
+resource "aws_api_gateway_method_response" "options_habits_habit_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_habit_id.id
+  http_method = aws_api_gateway_method.options_habits_habit_id.http_method
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# Integration response for OPTIONS - /habits/{habitId}
+resource "aws_api_gateway_integration_response" "options_habits_habit_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.habits_habit_id.id
+  http_method = aws_api_gateway_method.options_habits_habit_id.http_method
+  status_code = aws_api_gateway_method_response.options_habits_habit_id.status_code
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+  
+  depends_on = [aws_api_gateway_integration.options_habits_habit_id]
+}
+
+# Permission for API Gateway to invoke deleteHabit Lambda
+resource "aws_lambda_permission" "api_gateway_invoke_delete_habit" {
+  statement_id  = "AllowAPIGatewayInvokeDeleteHabit"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.delete_habit.function_name
+  principal     = "apigateway.amazonaws.com"
+  
+  source_arn = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+# ============================================
 # API Gateway Deployment & Stage
 # ============================================
 
@@ -465,7 +655,9 @@ resource "aws_api_gateway_deployment" "main" {
   depends_on = [
     aws_api_gateway_integration.get_user_data,
     aws_api_gateway_integration.create_habit,
-    aws_api_gateway_integration.complete_habit
+    aws_api_gateway_integration.get_habits,
+    aws_api_gateway_integration.complete_habit,
+    aws_api_gateway_integration.delete_habit
   ]
   
   rest_api_id = aws_api_gateway_rest_api.main.id
@@ -481,14 +673,21 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_integration.options_user_data.id,
       aws_api_gateway_resource.habits.id,
       aws_api_gateway_method.create_habit.id,
+      aws_api_gateway_method.get_habits.id,
       aws_api_gateway_method.options_habits.id,
       aws_api_gateway_integration.create_habit.id,
+      aws_api_gateway_integration.get_habits.id,
       aws_api_gateway_integration.options_habits.id,
       aws_api_gateway_resource.habits_complete.id,
       aws_api_gateway_method.complete_habit.id,
       aws_api_gateway_method.options_habits_complete.id,
       aws_api_gateway_integration.complete_habit.id,
       aws_api_gateway_integration.options_habits_complete.id,
+      aws_api_gateway_resource.habits_habit_id.id,
+      aws_api_gateway_method.delete_habit.id,
+      aws_api_gateway_method.options_habits_habit_id.id,
+      aws_api_gateway_integration.delete_habit.id,
+      aws_api_gateway_integration.options_habits_habit_id.id,
       aws_api_gateway_authorizer.cognito.id
     ]))
   }

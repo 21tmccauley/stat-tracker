@@ -11,10 +11,10 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 | Phase 1: Foundation | ✅ Complete | All infrastructure deployed |
 | Phase 2: Authentication | ✅ Complete | Full auth flow working |
 | Phase 3: First Lambda | ✅ Complete | getUserData endpoint live |
-| Phase 4: CRUD Operations | ✅ Complete | All backend endpoints implemented (getUserData, createHabit, completeHabit) |
-| Phase 5: Frontend Features | 🔄 In Progress | Dashboard fully functional with real API, needs getHabits endpoint & routing |
+| Phase 4: CRUD Operations | ✅ Complete | All backend endpoints implemented (getUserData, getHabits, createHabit, completeHabit, deleteHabit) |
+| Phase 5: Frontend Features | 🔄 In Progress | Dashboard fully functional with real API, create/delete habits working, needs routing |
 | Phase 6: PWA & Deployment | ❌ Not Started | |
-| Phase 7: Testing | ❌ Not Started | |
+| Phase 7: Testing | ✅ Partial | Test script updated with all endpoints, full workflow test working |
 
 **Last Updated**: January 11, 2026
 
@@ -121,7 +121,20 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 
 **Learning Focus**: DynamoDB writes, input validation, error handling
 
-### 4.2 Create `completeHabit` Lambda ✅ COMPLETE
+### 4.2 Create `getHabits` Lambda ✅ COMPLETE
+- [x] Write handler to query all habits for a user from DynamoDB
+- [x] Use QueryCommand to efficiently fetch by userId (partition key)
+- [x] Return habits array with count
+- [x] Deploy and test with `scripts/test-api.js get-habits`
+
+**What was built**:
+- `backend/getHabits/index.js` - Lambda handler with DynamoDB QueryCommand
+- API Gateway `GET /habits` endpoint with Cognito auth
+- Added to `scripts/test-api.js` with `get-habits` command
+
+**Learning Focus**: DynamoDB queries, QueryCommand vs ScanCommand, API Gateway GET methods
+
+### 4.3 Create `completeHabit` Lambda ✅ COMPLETE
 - [x] Write handler to:
   - [x] Verify habit exists and belongs to user
   - [x] Check if already completed today (prevent duplicates)
@@ -141,6 +154,21 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - Updated `scripts/test-api.js` with `complete-habit` command
 
 **Learning Focus**: DynamoDB updates, GetCommand + PutCommand + UpdateCommand, business logic
+
+### 4.4 Create `deleteHabit` Lambda ✅ COMPLETE
+- [x] Write handler to delete habit from DynamoDB
+- [x] Verify habit exists and belongs to user (security)
+- [x] Use DeleteCommand to remove habit
+- [x] Add DeleteItem permission to IAM policy
+- [x] Deploy and test with `scripts/test-api.js delete-habit <habitId>`
+
+**What was built**:
+- `backend/deleteHabit/index.js` - Lambda handler with ownership verification
+- API Gateway `DELETE /habits/{habitId}` endpoint with path parameter and Cognito auth
+- Updated IAM policy to include `dynamodb:DeleteItem` permission
+- Added to `scripts/test-api.js` with `delete-habit` command
+
+**Learning Focus**: DynamoDB DeleteCommand, API Gateway path parameters, security best practices
 
 ---
 
@@ -198,40 +226,57 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 **Current State**: 
 - ✅ Dashboard fully functional with real API integration
 - ✅ Complete habit functionality working (updates XP, detects level-ups)
-- ⚠️ Habits are still using mock data (need `getHabits` endpoint)
-- ⚠️ "New Habit" button exists but not functional (needs form/modal)
+- ✅ Habits fetched from real API (getHabits endpoint)
+- ✅ "New Habit" button functional with HabitForm modal
+- ✅ Delete habit functionality with confirmation dialog
 
 **Learning Focus**: React components, MUI, data fetching, state management, API integration, recharts
 
-### 5.3 Habits Management 🔄 PARTIAL
+### 5.3 Habits Management ✅ COMPLETE
 - [x] Create HabitCard component (display habits) ✅
 - [x] Wire up complete habit to real API ✅
-- [ ] Create Habits page/component (file exists but empty)
-- [ ] Create HabitForm component (create new habits)
-- [ ] Wire up create habit to real API (API exists, needs UI)
-- [ ] Fetch real habits from API (need `getHabits` Lambda endpoint)
-- [ ] Add "New Habit" modal/form to Dashboard
+- [x] Create HabitForm component (create new habits) ✅
+- [x] Wire up create habit to real API ✅
+- [x] Fetch real habits from API (getHabits endpoint) ✅
+- [x] Add "New Habit" modal/form to Dashboard ✅
+- [x] Add delete habit functionality with confirmation dialog ✅
+- [ ] Create Habits page/component (file exists but empty - optional for future)
+
+**What was built**:
+- `frontend/src/components/HabitForm.jsx` - Modal form with:
+  - Name field (required, validated)
+  - Description field (optional, multiline)
+  - XP Reward slider (1-100, default 10)
+  - Form validation matching backend requirements
+  - Loading states and error handling
+- Updated `frontend/src/pages/Dashboard.jsx`:
+  - Integrated HabitForm modal
+  - Fetches real habits using `getHabits()` API
+  - Handles habit creation with auto-refresh
+  - Handles habit deletion with confirmation
+- Updated `frontend/src/components/HabitCard.jsx`:
+  - Added delete button with trash icon
+  - Added confirmation dialog before deletion
+  - Loading states during deletion
 
 **Current State**: 
-- Dashboard displays mock habits (4 hardcoded habits)
-- Complete button works and calls real API
-- Need `getHabits` endpoint to fetch user's actual habits
-- Need form/modal for creating new habits
+- ✅ Dashboard displays real habits from API
+- ✅ Complete button works and calls real API
+- ✅ Create habit form fully functional
+- ✅ Delete habit with confirmation working
+- ✅ All CRUD operations working in Dashboard
 
-**Learning Focus**: Forms, user interactions, state updates, API calls
+**Learning Focus**: Forms, user interactions, state updates, API calls, confirmation dialogs, MUI Dialog component
 
 ### 5.4 Remaining Frontend Tasks 📋
 - [ ] Add React Router for page navigation (Dashboard, Habits, Settings routes)
-- [ ] Create `getHabits` Lambda endpoint (backend)
-- [ ] Wire up Dashboard to fetch real habits from API
-- [ ] Create Habits page (full habits management UI)
-- [ ] Add "New Habit" modal/form (with createHabit API integration)
+- [ ] Create Habits page (full habits management UI - optional, Dashboard has most functionality)
 - [ ] Replace alert() with toast notifications (better UX)
 - [ ] Add loading skeletons (better loading UX)
 - [ ] Add level-up celebration animation/modal (replace alert)
 - [ ] Wire up sidenav navigation (currently static)
 
-**Estimated Time Remaining**: 4-6 hours
+**Estimated Time Remaining**: 2-4 hours
 
 ---
 
@@ -291,8 +336,8 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 ---
 
 ## Total Estimated Time: 30-48 hours
-## Time Spent So Far: ~20-25 hours
-## Remaining: ~10-15 hours
+## Time Spent So Far: ~25-30 hours
+## Remaining: ~5-10 hours
 
 ---
 
@@ -300,28 +345,21 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 
 ### Immediate (To Complete Core Functionality)
 
-1. **Add `getHabits` Lambda** - Fetch user's habits from DynamoDB
-   - Create `backend/getHabits/index.js`
-   - Add to `lambda.tf` (GET /habits endpoint)
-   - Add `getHabits()` function to `api.js`
-   - Update Dashboard to fetch real habits instead of mock data
-
-2. **Add "New Habit" Form** - Create habit functionality
-   - Create HabitForm component or modal
-   - Wire up to existing `createHabit` API
-   - Add form validation
-   - Update Dashboard habits list after creation
-
-3. **Add React Router** - Enable navigation between pages
+1. **Add React Router** - Enable navigation between pages
    - Install react-router-dom
    - Set up routes (Dashboard, Habits, Settings)
    - Update sidenav to navigate between pages
    - Add protected route wrapper
 
-4. **Create Habits Page** - Full habits management
+2. **Create Habits Page** - Full habits management (optional)
    - List all habits with real data
-   - Create new habit form
-   - Edit/delete habits (future: need update/delete endpoints)
+   - Create new habit form (can reuse HabitForm)
+   - Edit/delete habits (delete already works, edit would need update endpoint)
+
+3. **Polish UX** - Improve user experience
+   - Replace alert() with toast notifications
+   - Add loading skeletons
+   - Add level-up celebration animation/modal
 
 ### Nice to Have (Polish)
 
@@ -343,15 +381,16 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 
 ### Backend (`backend/`)
 - `getUserData/index.js` - ✅ Complete (GET /user-data)
+- `getHabits/index.js` - ✅ Complete (GET /habits)
 - `createHabit/index.js` - ✅ Complete (POST /habits)
 - `completeHabit/index.js` - ✅ Complete (POST /habits/complete)
-- `getHabits/index.js` - ❌ Not created yet (needed to fetch user's habits)
+- `deleteHabit/index.js` - ✅ Complete (DELETE /habits/{habitId})
 
 ### Frontend (`frontend/src/`)
 
 #### Services
 - `services/auth.js` - ✅ Cognito authentication
-- `services/api.js` - ✅ API client with auth
+- `services/api.js` - ✅ API client with auth (getUserData, getHabits, createHabit, completeHabit, deleteHabit)
 
 #### Theme
 - `theme/index.js` - ✅ MUI dark theme
@@ -361,7 +400,8 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - `components/GlassCard.jsx` - ✅ Glass-style card wrapper
 - `components/StatCard.jsx` - ✅ Mini statistics card
 - `components/CharacterCard.jsx` - ✅ Level/XP display
-- `components/HabitCard.jsx` - ✅ Habit with complete button
+- `components/HabitCard.jsx` - ✅ Habit with complete and delete buttons
+- `components/HabitForm.jsx` - ✅ Modal form for creating habits
 - `components/ProgressChart.jsx` - ✅ 7-day XP progress chart (recharts)
 - `components/LoginHero.jsx` - ✅ Hero image component for login
 - `components/AuthButton.jsx` - ✅ Reusable styled auth button
@@ -377,6 +417,8 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 
 ### Scripts (`scripts/`)
 - `test-api.js` - ✅ API testing helper with Cognito auth
+  - Commands: create-habit, get-habits, complete-habit, delete-habit, get-user-data, test-all
+  - Full workflow test validates complete CRUD operations
 
 ---
 

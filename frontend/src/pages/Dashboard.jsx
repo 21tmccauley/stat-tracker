@@ -12,9 +12,10 @@ import StatCard from '../components/StatCard';
 import CharacterCard from '../components/CharacterCard';
 import HabitCard from '../components/HabitCard';
 import ProgressChart from '../components/ProgressChart';
+import HabitForm from '../components/HabitForm';
 
 // Services
-import { getUserData, completeHabit } from '../services/api';
+import { getUserData, getHabits, createHabit, completeHabit, deleteHabit } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 function Dashboard() {
@@ -27,6 +28,9 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [completingHabit, setCompletingHabit] = useState(null);
+  const [habitFormOpen, setHabitFormOpen] = useState(false);
+  const [creatingHabit, setCreatingHabit] = useState(false);
+  const [deletingHabit, setDeletingHabit] = useState(null);
 
   // Fetch data on mount
   useEffect(() => {
@@ -36,16 +40,20 @@ function Dashboard() {
   async function fetchDashboardData() {
     try {
       setLoading(true);
-      const data = await getUserData();
-      setUserData(data);
-      // TODO: Fetch habits separately when we add that endpoint
-      // For now, using mock data
-      setHabits([
-        { habitId: '1', name: 'Morning Exercise', description: '30 minutes of activity', xpReward: 25 },
-        { habitId: '2', name: 'Read 30 Minutes', description: 'Read a book or articles', xpReward: 15 },
-        { habitId: '3', name: 'Meditate', description: '10 minutes of mindfulness', xpReward: 10 },
-        { habitId: '4', name: 'Drink 8 Glasses of Water', xpReward: 10 },
+      setError(null);
+      
+      // Fetch user data and habits in parallel for better performance
+      const [userDataResult, habitsResult] = await Promise.all([
+        getUserData(),
+        getHabits()
       ]);
+      
+      setUserData(userDataResult);
+      
+      // Filter to show only active habits (isActive === true)
+      // If you want to show all habits, remove the filter
+      const activeHabits = (habitsResult.habits || []).filter(habit => habit.isActive !== false);
+      setHabits(activeHabits);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
       setError(err.message);
@@ -80,6 +88,55 @@ function Dashboard() {
       alert(err.message || 'Failed to complete habit');
     } finally {
       setCompletingHabit(null);
+    }
+  }
+
+  async function handleCreateHabit(habitData) {
+    try {
+      setCreatingHabit(true);
+      const result = await createHabit(habitData);
+      
+      // Close the form
+      setHabitFormOpen(false);
+      
+      // Refresh habits list to show the new habit
+      const habitsResult = await getHabits();
+      const activeHabits = (habitsResult.habits || []).filter(habit => habit.isActive !== false);
+      setHabits(activeHabits);
+      
+      // Show success message
+      alert(`✅ Habit "${result.habit.name}" created successfully!`);
+    } catch (err) {
+      console.error('Failed to create habit:', err);
+      alert(err.message || 'Failed to create habit');
+    } finally {
+      setCreatingHabit(false);
+    }
+  }
+
+  async function handleDeleteHabit(habitId) {
+    try {
+      setDeletingHabit(habitId);
+      await deleteHabit(habitId);
+      
+      // Remove habit from local state immediately for better UX
+      setHabits(prev => prev.filter(habit => habit.habitId !== habitId));
+      
+      // Also remove from completed list if it was there
+      setCompletedToday(prev => prev.filter(id => id !== habitId));
+      
+      // Show success message
+      alert('✅ Habit deleted successfully!');
+    } catch (err) {
+      console.error('Failed to delete habit:', err);
+      alert(err.message || 'Failed to delete habit');
+      
+      // Refresh habits list to get accurate state
+      const habitsResult = await getHabits();
+      const activeHabits = (habitsResult.habits || []).filter(habit => habit.isActive !== false);
+      setHabits(activeHabits);
+    } finally {
+      setDeletingHabit(null);
     }
   }
 
@@ -126,6 +183,7 @@ function Dashboard() {
         <Button
           variant="contained"
           startIcon={<IoAdd />}
+          onClick={() => setHabitFormOpen(true)}
           sx={{
             background: 'linear-gradient(90deg, #0075ff 0%, #21d4fd 100%)',
           }}
@@ -211,7 +269,9 @@ function Dashboard() {
                   habit={habit}
                   isCompleted={completedToday.includes(habit.habitId)}
                   isLoading={completingHabit === habit.habitId}
+                  isDeleting={deletingHabit === habit.habitId}
                   onComplete={handleCompleteHabit}
+                  onDelete={handleDeleteHabit}
                 />
               ))}
             </Box>
@@ -273,6 +333,14 @@ function Dashboard() {
           </GlassCard>
         </Grid>
       </Grid>
+
+      {/* Habit Form Modal */}
+      <HabitForm
+        open={habitFormOpen}
+        onClose={() => setHabitFormOpen(false)}
+        onSubmit={handleCreateHabit}
+        isLoading={creatingHabit}
+      />
     </Box>
   );
 }

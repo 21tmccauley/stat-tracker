@@ -1,11 +1,29 @@
 // HabitCard - Individual habit display with complete button
 // Shows habit name, XP reward, and completion status
 
-import { Box, Typography, Button, Chip } from '@mui/material';
-import { IoCheckmarkCircle } from 'react-icons/io5';
+import { useState } from 'react';
+import { Box, Typography, Button, Chip, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { IoCheckmarkCircle, IoTrash } from 'react-icons/io5';
 
-function HabitCard({ habit, onComplete, isCompleted = false, isLoading = false }) {
+function HabitCard({ habit, onComplete, onDelete, isCompleted = false, isLoading = false, isDeleting = false }) {
   const { name, description, xpReward = 10 } = habit;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation(); // Prevent any parent click handlers
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    setDeleteDialogOpen(false);
+    if (onDelete) {
+      onDelete(habit.habitId);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
 
   return (
     <Box
@@ -93,45 +111,112 @@ function HabitCard({ habit, onComplete, isCompleted = false, isLoading = false }
         }}
       />
 
-      {/* Complete button */}
-      {!isCompleted ? (
-        <Button
-          variant="contained"
+      {/* Action buttons */}
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        {/* Delete button */}
+        <IconButton
           size="small"
-          onClick={() => onComplete(habit.habitId)}
-          disabled={isLoading}
+          onClick={handleDeleteClick}
+          disabled={isDeleting || isLoading}
           sx={{
-            minWidth: 90,
-            background: 'linear-gradient(90deg, #0075ff 0%, #21d4fd 100%)',
+            color: 'rgba(255, 255, 255, 0.5)',
             '&:hover': {
-              background: 'linear-gradient(90deg, #0066dd 0%, #1bc4ed 100%)',
+              color: '#ff4444',
+              background: 'rgba(255, 68, 68, 0.1)',
             },
             '&:disabled': {
-              background: 'rgba(255, 255, 255, 0.1)',
-              color: 'rgba(255, 255, 255, 0.3)',
+              color: 'rgba(255, 255, 255, 0.2)',
             },
           }}
         >
-          {isLoading ? '...' : 'Complete'}
-        </Button>
-      ) : (
-        <Chip
-          icon={<IoCheckmarkCircle size={16} />}
-          label="Done"
-          size="small"
-          sx={{
-            background: 'linear-gradient(90deg, #01b574 0%, #35d28a 100%)',
-            color: 'white',
-            fontWeight: 600,
-            '& .MuiChip-icon': {
+          <IoTrash size={18} />
+        </IconButton>
+
+        {/* Complete button */}
+        {!isCompleted ? (
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => onComplete(habit.habitId)}
+            disabled={isLoading || isDeleting}
+            sx={{
+              minWidth: 90,
+              background: 'linear-gradient(90deg, #0075ff 0%, #21d4fd 100%)',
+              '&:hover': {
+                background: 'linear-gradient(90deg, #0066dd 0%, #1bc4ed 100%)',
+              },
+              '&:disabled': {
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: 'rgba(255, 255, 255, 0.3)',
+              },
+            }}
+          >
+            {isLoading ? '...' : 'Complete'}
+          </Button>
+        ) : (
+          <Chip
+            icon={<IoCheckmarkCircle size={16} />}
+            label="Done"
+            size="small"
+            sx={{
+              background: 'linear-gradient(90deg, #01b574 0%, #35d28a 100%)',
               color: 'white',
-            },
-          }}
-        />
-      )}
+              fontWeight: 600,
+              '& .MuiChip-icon': {
+                color: 'white',
+              },
+            }}
+          />
+        )}
+      </Box>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        PaperProps={{
+          sx: {
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: 'white' }}>
+          Delete Habit?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            Are you sure you want to delete "{name}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleDeleteCancel}
+            sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            sx={{
+              background: '#ff4444',
+              '&:hover': {
+                background: '#cc3333',
+              },
+            }}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
 
 export default HabitCard;
+
+
 

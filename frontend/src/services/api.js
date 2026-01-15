@@ -43,10 +43,15 @@ async function apiRequest(method, endpoint, body = null) {
 
 // STEP 5: Export specific API functions
 // - getUserData(): GET /user-data
+// - getHabits(): GET /habits
 // - createHabit(habitData): POST /habits
 // - completeHabit(habitId): POST /habits/complete
+// - deleteHabit(habitId): DELETE /habits/{habitId}
 export function getUserData() {
     return apiRequest('GET', '/user-data');
+}
+export function getHabits() {
+    return apiRequest('GET', '/habits');
 }
 export function createHabit(habitData) {
     return apiRequest('POST', '/habits', habitData);
@@ -54,9 +59,14 @@ export function createHabit(habitData) {
 export function completeHabit(habitId) {
     return apiRequest('POST', '/habits/complete', { habitId });
 }
+export function deleteHabit(habitId) {
+    return apiRequest('DELETE', `/habits/${habitId}`);
+}
 
 export default {
     getUserData,
+    getHabits,
     createHabit,
-    completeHabit
+    completeHabit,
+    deleteHabit
 }

@@ -136,3 +136,5 @@ function CharacterCard({ level = 1, totalXP = 0, username = 'Adventurer' }) {
 
 export default CharacterCard;
 
+
+
