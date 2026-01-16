@@ -1,16 +1,16 @@
 import { Box, Typography } from '@mui/material';
 
-function Habits() {
+function Settings() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" sx={{ color: 'white', mb: 1 }}>
-        Habits
+        Settings
       </Typography>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-        Habits page coming soon.
+        Settings page coming soon.
       </Typography>
     </Box>
   );
 }
 
-export default Habits;
+export default Settings;

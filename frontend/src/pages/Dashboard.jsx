@@ -2,6 +2,7 @@
 // Main dashboard page with character stats and habits
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { Box, Grid, Typography, Button, CircularProgress } from '@mui/material';
 import { IoAdd, IoFlame, IoCheckmarkCircle, IoStatsChart } from 'react-icons/io5';
 import { IoIosRocket } from 'react-icons/io';
@@ -79,13 +80,13 @@ function Dashboard() {
         }));
       }
 
-      // Show level up celebration (could add a modal/toast here)
+      // Show level up celebration (toast keeps UX non-blocking)
       if (result.user?.leveledUp) {
-        alert(`🎉 Level Up! You are now level ${result.user.level}!`);
+        toast.success(`🎉 Level Up! You are now level ${result.user.level}!`);
       }
     } catch (err) {
       console.error('Failed to complete habit:', err);
-      alert(err.message || 'Failed to complete habit');
+      toast.error(err.message || 'Failed to complete habit');
     } finally {
       setCompletingHabit(null);
     }
@@ -105,10 +106,10 @@ function Dashboard() {
       setHabits(activeHabits);
       
       // Show success message
-      alert(`✅ Habit "${result.habit.name}" created successfully!`);
+      toast.success(`Habit "${result.habit.name}" created successfully!`);
     } catch (err) {
       console.error('Failed to create habit:', err);
-      alert(err.message || 'Failed to create habit');
+      toast.error(err.message || 'Failed to create habit');
     } finally {
       setCreatingHabit(false);
     }
@@ -126,10 +127,10 @@ function Dashboard() {
       setCompletedToday(prev => prev.filter(id => id !== habitId));
       
       // Show success message
-      alert('✅ Habit deleted successfully!');
+      toast.success('Habit deleted successfully!');
     } catch (err) {
       console.error('Failed to delete habit:', err);
-      alert(err.message || 'Failed to delete habit');
+      toast.error(err.message || 'Failed to delete habit');
       
       // Refresh habits list to get accurate state
       const habitsResult = await getHabits();
