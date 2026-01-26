@@ -34,7 +34,15 @@ export function AuthProvider({ children }) {
             }
         }
     } catch (error) {
-        console.error('Error checking auth:', error);
+        // "No user found" is expected when user hasn't logged in yet - not an error
+        if (error.message === 'No user found') {
+            // User is simply not logged in - this is normal on first visit
+            setUser(null);
+            setIsAuthenticated(false);
+        } else {
+            // Log actual errors (expired sessions, network issues, etc.)
+            console.error('Error checking auth:', error);
+        }
     } finally {
         setLoading(false);
     }

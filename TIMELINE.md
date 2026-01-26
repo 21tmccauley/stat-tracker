@@ -12,11 +12,11 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 | Phase 2: Authentication | ✅ Complete | Full auth flow working |
 | Phase 3: First Lambda | ✅ Complete | getUserData endpoint live |
 | Phase 4: CRUD Operations | ✅ Complete | All backend endpoints implemented (getUserData, getHabits, createHabit, completeHabit, deleteHabit) |
-| Phase 5: Frontend Features | 🔄 In Progress | Dashboard fully functional with real API, create/delete habits working, needs routing |
+| Phase 5: Frontend Features | 🔄 In Progress | Dashboard fully functional with real API, routing + toasts added, habits/settings routes stubbed |
 | Phase 6: PWA & Deployment | ❌ Not Started | |
 | Phase 7: Testing | ✅ Partial | Test script updated with all endpoints, full workflow test working |
 
-**Last Updated**: January 11, 2026
+**Last Updated**: January 16, 2026
 
 ---
 
@@ -182,7 +182,7 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - [x] Install MUI (Material-UI) component library
 - [x] Create Vision UI-inspired dark theme
 - [x] Install recharts for data visualization
-- [ ] Add React Router for navigation
+- [x] Add React Router for navigation (nested routes + protected layout)
 
 **What was built**:
 - `frontend/src/services/api.js` - API client with auth token handling (getUserData, createHabit, completeHabit)
@@ -204,7 +204,7 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - [x] Create Sidenav component (fixed sidebar navigation)
 - [x] Create Header component (user info, logout button)
 - [x] Wire up "Complete Habit" button to real API - **Fully functional**
-- [x] Handle level-up notifications (alert-based, needs improvement)
+- [x] Handle level-up notifications (toast-based, non-blocking)
 - [x] Style with MUI + custom theme
 - [x] Add loading states (CircularProgress)
 - [x] Add error handling with retry functionality
@@ -213,7 +213,7 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - `frontend/src/pages/Dashboard.jsx` - Complete dashboard with:
   - Real API calls to `getUserData()` and `completeHabit()`
   - State management for habits, completed habits, loading, errors
-  - Level-up detection and alerts
+  - Level-up detection and toast notifications
   - Activity log sidebar
   - Stats grid (Active Habits, Total XP, Completed Today, Day Streak)
 - `frontend/src/components/CharacterCard.jsx` - Hero card with level/XP progress
@@ -221,7 +221,9 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - `frontend/src/components/GlassCard.jsx` - Glass-style card wrapper
 - `frontend/src/components/HabitCard.jsx` - Individual habit with complete button
 - `frontend/src/components/ProgressChart.jsx` - Area chart showing XP progress over 7 days
-- `frontend/src/App.jsx` - Full app layout with sidenav, header, theme provider, auth routing
+- `frontend/src/App.jsx` - Routes and providers (nested routing + protected pages)
+- `frontend/src/layout.jsx` - Shared app layout with sidenav/header
+- `frontend/src/ProtectedRoute.jsx` - Auth gate for protected pages
 
 **Current State**: 
 - ✅ Dashboard fully functional with real API integration
@@ -240,7 +242,7 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 - [x] Fetch real habits from API (getHabits endpoint) ✅
 - [x] Add "New Habit" modal/form to Dashboard ✅
 - [x] Add delete habit functionality with confirmation dialog ✅
-- [ ] Create Habits page/component (file exists but empty - optional for future)
+- [x] Create Habits page/component (placeholder route + UI stub)
 
 **What was built**:
 - `frontend/src/components/HabitForm.jsx` - Modal form with:
@@ -269,12 +271,10 @@ This timeline breaks down the RPG Habit Tracker project into manageable phases, 
 **Learning Focus**: Forms, user interactions, state updates, API calls, confirmation dialogs, MUI Dialog component
 
 ### 5.4 Remaining Frontend Tasks 📋
-- [ ] Add React Router for page navigation (Dashboard, Habits, Settings routes)
-- [ ] Create Habits page (full habits management UI - optional, Dashboard has most functionality)
-- [ ] Replace alert() with toast notifications (better UX)
+- [ ] Flesh out Habits page (full habits management UI - optional, Dashboard has most functionality)
+- [ ] Add Settings page content (currently placeholder)
 - [ ] Add loading skeletons (better loading UX)
-- [ ] Add level-up celebration animation/modal (replace alert)
-- [ ] Wire up sidenav navigation (currently static)
+- [ ] Add level-up celebration animation/modal
 
 **Estimated Time Remaining**: 2-4 hours
 
